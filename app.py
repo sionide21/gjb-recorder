@@ -1,4 +1,6 @@
+import json
 import os
+import requests
 from flask import Flask, request, abort, session
 from functools import wraps
 from twilio.util import RequestValidator
@@ -8,6 +10,41 @@ from twilio import twiml
 app = Flask(__name__)
 app.secret_key = 'd1e743a696ae082d24c0458d2b088dd60dee44f4'
 validator = RequestValidator(os.environ['TWILIO_AUTH_TOKEN'])
+email_address = os.environ['GJB_EMAIL_ADDRESS']
+mandrill_key = os.environ['MANDRILL_AUTH_TOKEN']
+
+
+EMAIL_TEMPLATE = """\
+Someone has recorded a message for the show!
+They called in from %(phone_number)s.
+You can listen to their recording at the following url:
+
+%(recording_url)s
+
+Thanks,
+Record-o-bot
+
+PS. Record-o-bot is run by Ben Olive (@sionide21).
+If you have questions/comments, or you want me to stop, feel free to email him directly at sionide21@gmail.com.
+"""
+
+
+def send_email(recording_url, phone_number):
+    requests.post('https://mandrillapp.com/api/1.0/messages/send.json', data=json.dumps({
+        "message": {
+            "text": EMAIL_TEMPLATE % dict(recording_url=recording_url, phone_number=phone_number),
+            "subject": "Recording for the show from %s" % phone_number,
+            "from_email": "record.o.bot@mx.moosen.net",
+            "from_name": "Record-o-bot",
+            "to": [
+                {
+                    "email": email_address,
+                    "type": "to"
+                }
+            ]
+        },
+        "key": mandrill_key
+    })).raise_for_status()
 
 
 def twilio(fn):
@@ -47,6 +84,13 @@ def finished_recording(resp):
 
 
 @twilio
+def send_recording(resp):
+    recording_url = session['recording_url']
+    send_email(recording_url, request.values.get('From'))
+    resp.say("You recording has been sent. Good bye.")
+
+
+@twilio
 def key_pressed(resp):
     digit_pressed = request.values.get('Digits')
     recording_url = session['recording_url']
@@ -55,7 +99,8 @@ def key_pressed(resp):
         resp.play(recording_url)
         resp.redirect('/finished_recording')
     elif digit_pressed == "2":
-        resp.say("It is done")
+        resp.say("Please hang on while I send your recording.")
+        resp.redirect("/send_recording")
     elif digit_pressed == "3":
         resp.record(maxLength="300", action="/finished_recording")
     else:
