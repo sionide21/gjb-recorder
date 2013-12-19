@@ -34,6 +34,7 @@ def start(resp):
         "Messages are limited to five minutes. "
         "When you are finished recording: press 1 to review the message, or press 2 to send the message."
     )
+    resp.pause(length=1)
     resp.record(maxLength="300", action="/finished_recording")
 
 
