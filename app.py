@@ -14,7 +14,10 @@ def twilio(fn):
     @app.route('/' + fn.__name__, methods=['POST'])
     @wraps(fn)
     def _fn():
-        if True or validator.validate(request.url, request.values, request.headers.get('X-Twilio-Signature', '')):
+        proto = request.headers.get('X-Forwarded-Proto', 'http')
+        url = request.url.replace('http:', proto + ':')
+
+        if validator.validate(url, request.values, request.headers.get('X-Twilio-Signature', '')):
             resp = twiml.Response()
             fn(resp)
         else:
