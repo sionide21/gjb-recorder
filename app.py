@@ -50,6 +50,11 @@ def send_email(recording_url, phone_number):
     })).raise_for_status()
 
 
+@app.route('/', methods=['GET'])
+def index():
+    return "Life's good."
+
+
 def twilio(fn):
     @app.route('/' + fn.__name__, methods=['POST'])
     @wraps(fn)
