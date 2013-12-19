@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import requests
 from flask import Flask, request, abort, session
@@ -12,6 +13,8 @@ app.secret_key = 'd1e743a696ae082d24c0458d2b088dd60dee44f4'
 validator = RequestValidator(os.environ['TWILIO_AUTH_TOKEN'])
 email_address = os.environ['GJB_EMAIL_ADDRESS']
 mandrill_key = os.environ['MANDRILL_AUTH_TOKEN']
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 EMAIL_TEMPLATE = """\
